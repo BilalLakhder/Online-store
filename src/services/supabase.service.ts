@@ -32,13 +32,16 @@ export class SupabaseService {
   readonly isInitialized = this._isInitialized.asReadonly();
 
   constructor() {
-    this.supabase = createClient(
-      environment.supabase.url,
-      environment.supabase.anonKey
-    );
-    
-    this.initAuthListener();
-  }
+  console.log('SUPABASE URL:', environment.supabase.url);
+  console.log('SUPABASE KEY:', environment.supabase.anonKey);
+
+  this.supabase = createClient(
+    environment.supabase.url,
+    environment.supabase.anonKey
+  );
+  
+  this.initAuthListener();
+}
 
   private async initAuthListener() {
     // Get initial session

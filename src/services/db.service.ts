@@ -211,7 +211,10 @@ export class DbService {
       const { data, error } = await this.supabase.getOrders();
       
       if (error) {
-        console.warn('Supabase orders fetch failed, using localStorage:', error.message);
+        console.error('SUPABASE PRODUCTS ERROR FULL:', {
+  data,
+  error
+});
         const stored = localStorage.getItem('lumina_orders');
         this.orders.set(stored ? JSON.parse(stored) : []);
       } else {
@@ -229,32 +232,66 @@ export class DbService {
   /**
    * Load customers from Supabase profiles
    */
-  async loadCustomers(): Promise<void> {
-    this._isLoadingCustomers.set(true);
-    
-    try {
-      const { data, error } = await this.supabase.getCustomers();
-      
-      if (error || data.length === 0) {
-        console.warn('Supabase customers fetch failed or empty, using fallback:', error?.message);
-        const stored = localStorage.getItem('lumina_customers');
-        if (stored) {
-          this.customers.set(JSON.parse(stored));
-        } else {
-          this.customers.set(INITIAL_CUSTOMERS);
-          this.saveCustomersLocal(INITIAL_CUSTOMERS);
-        }
-      } else {
-        this.customers.set(data);
-      }
-    } catch (err) {
-      console.error('Error loading customers:', err);
+  /**
+ * Load customers from Supabase profiles
+ */
+async loadCustomers(): Promise<void> {
+  this._isLoadingCustomers.set(true);
+
+  try {
+    const { data, error } = await this.supabase.getCustomers();
+
+    // Only treat REAL Supabase errors as errors
+    if (error) {
+      console.error('SUPABASE CUSTOMERS ERROR FULL:', {
+        data,
+        error
+      });
+
       const stored = localStorage.getItem('lumina_customers');
-      this.customers.set(stored ? JSON.parse(stored) : INITIAL_CUSTOMERS);
-    } finally {
-      this._isLoadingCustomers.set(false);
+
+      if (stored) {
+        this.customers.set(JSON.parse(stored));
+      } else {
+        this.customers.set(INITIAL_CUSTOMERS);
+        this.saveCustomersLocal(INITIAL_CUSTOMERS);
+      }
+
+      return;
     }
+
+    // Empty array is VALID
+    if (!data || data.length === 0) {
+      console.warn('No customers found in database');
+
+      const stored = localStorage.getItem('lumina_customers');
+
+      if (stored) {
+        this.customers.set(JSON.parse(stored));
+      } else {
+        this.customers.set(INITIAL_CUSTOMERS);
+        this.saveCustomersLocal(INITIAL_CUSTOMERS);
+      }
+
+      return;
+    }
+
+    // Success
+    this.customers.set(data);
+
+  } catch (err) {
+    console.error('Error loading customers:', err);
+
+    const stored = localStorage.getItem('lumina_customers');
+
+    this.customers.set(
+      stored ? JSON.parse(stored) : INITIAL_CUSTOMERS
+    );
+
+  } finally {
+    this._isLoadingCustomers.set(false);
   }
+}
 
   // ============================================
   // PRODUCT OPERATIONS

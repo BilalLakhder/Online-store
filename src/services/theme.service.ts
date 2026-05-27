@@ -272,55 +272,76 @@ export class ThemeService {
    * Load theme from Supabase
    */
   async loadTheme(): Promise<void> {
-    this._isLoading.set(true);
-    
-    try {
-      const { data, error } = await this.supabase.client
-        .from('site_settings')
-        .select('*')
-        .eq('key', 'theme')
-        .single();
+  this._isLoading.set(true);
 
-      if (data && !error) {
-        const config = { ...DEFAULT_THEME, ...data.value };
-        this._theme.set(config);
-        localStorage.setItem('lumina_theme', JSON.stringify(config));
-      }
-    } catch (err) {
-      console.warn('Theme not found in database, using defaults');
-    } finally {
-      this._isLoading.set(false);
+  try {
+
+    const { data, error } = await this.supabase.client
+      .from('site_settings')
+      .select('*')
+      .eq('key', 'theme')
+      .limit(1);
+
+    console.log('SITE SETTINGS:', data, error);
+
+    if (data && !error) {
+
+      const config = {
+  ...DEFAULT_THEME,
+  ...data[0].value
+};
+
+      this._theme.set(config);
+
+      localStorage.setItem(
+        'lumina_theme',
+        JSON.stringify(config)
+      );
     }
+
+  } catch (err) {
+
+    console.warn(
+      'Theme not found in database, using defaults'
+    );
+
+  } finally {
+    this._isLoading.set(false);
   }
+}
 
   /**
    * Save theme to Supabase (admin only)
    */
-  async saveTheme(config: Partial<ThemeConfig>): Promise<{ error: Error | null }> {
-    const newTheme = { ...this._theme(), ...config };
-    
-    try {
-      const { error } = await this.supabase.client
-        .from('site_settings')
-        .upsert({
-          key: 'theme',
-          value: newTheme,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'key' });
+ async saveTheme(config: Partial<ThemeConfig>): Promise<{ error: Error | null }> {
 
-      if (error) {
-        return { error: error as Error };
-      }
+  const newTheme = { ...this._theme(), ...config };
 
-      this._theme.set(newTheme);
-      localStorage.setItem('lumina_theme', JSON.stringify(newTheme));
-      
-      return { error: null };
-    } catch (err) {
-      return { error: err as Error };
+  try {
+
+    const { error } = await this.supabase.client
+      .from('site_settings')
+      .insert({
+        theme: JSON.stringify(newTheme)
+      });
+
+    if (error) {
+      return { error: error as Error };
     }
-  }
 
+    this._theme.set(newTheme);
+
+    localStorage.setItem(
+      'lumina_theme',
+      JSON.stringify(newTheme)
+    );
+
+    return { error: null };
+
+  } catch (err) {
+    return { error: err as Error };
+  }
+}
   /**
    * Reset theme to defaults
    */

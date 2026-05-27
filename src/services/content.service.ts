@@ -117,14 +117,18 @@ export class ContentService {
     this._isLoading.set(true);
     
     try {
-      const { data, error } = await this.supabase.client
-        .from('site_settings')
-        .select('*')
-        .eq('key', 'content')
-        .single();
+        const { data, error } = await this.supabase.client
+            .from('site_settings')
+            .select('value')
+            .eq('key', 'content')
+            .maybeSingle();
 
       if (data && !error) {
-        const content = { ...DEFAULT_CONTENT, ...data.value };
+          const content = {
+              ...DEFAULT_CONTENT,
+              ...(data?.value ?? {})
+          };
+          console.log('CONTENT SETTINGS:', data, error);
         this._content.set(content);
         localStorage.setItem('lumina_content', JSON.stringify(content));
       }
